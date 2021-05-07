@@ -68,8 +68,34 @@ async def send_pic(event):
 
     temp_dir.cleanup()
 
-@bot.on(events.NewMessage(pattern=r'/dmmvid\s*.*-\d*'))
-async def send_pic(event):
+@bot.on(events.NewMessage(pattern=r'V|v'))
+async def send_vid(event):
+    chat_id = event.message.chat_id
+    reply_msg = await event.get_reply_message()
+    num = re.match(r'.+-\d+', reply_msg.text).group()
+    infopage = requests.post('https://www.jav321.com/search', data={'sn':num})
+    cid = re.sub('https://www.jav321.com/video/', '', infopage.url)
+    cidp = cid[0]+'/'+cid[0:3]+'/'+cid
+    vidurl = 'https://cc3001.dmm.co.jp/litevideo/freepv/'+cidp+'/'+cid+'_mhb_w.mp4'
+    temp_dir = tempfile.TemporaryDirectory()
+    save_path = temp_dir.name+'/'+cid+'.mp4'
+    with urllib.request.urlopen(vidurl) as response, open(save_path, 'wb') as out_file:
+        shutil.copyfileobj(response, out_file)
+    metadata, mime_type = get_metadata(save_path)
+    with open(save_path, 'rb') as f:
+        input_file = await upload_file(bot, f)
+    input_media = get_input_media(input_file)
+    input_media.attributes = [
+        DocumentAttributeVideo(round_message=False, supports_streaming=True, **metadata),
+        DocumentAttributeFilename(os.path.basename(save_path)),
+    ]
+    input_media.mime_type = mime_type
+    await bot.send_file(chat_id, input_media)
+
+    temp_dir.cleanup()
+
+@bot.on(events.NewMessage(pattern=r'/dmmvid\s*.+-\d+'))
+async def send_vid(event):
     chat_id = event.message.chat_id
     num = re.sub(r'/dmmvid\s*', '', event.message.text)
     infopage = requests.post('https://www.jav321.com/search', data={'sn':num})
