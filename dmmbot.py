@@ -13,11 +13,10 @@ from hachoir.metadata.video import MP4Metadata
 
 from FastTelethon.FastTelethon import upload_file
 
-token = os.getenv("TOKEN")
 app_id = int(os.getenv("APP_ID"))
 app_hash = os.getenv("APP_HASH")
 
-bot = TelegramClient('bot', app_id, app_hash).start(bot_token=token)
+bot = TelegramClient('bot', app_id, app_hash)
 
 def get_metadata(save_path):
     metadata = extractMetadata(createParser(save_path))
