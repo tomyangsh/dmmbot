@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # coding: utf-8
 
-import tempfile, os, requests, urllib.request, shutil, asyncio, re
+import tempfile, os, requests, urllib.request, shutil, asyncio, re, random
 
 from telethon import TelegramClient, events
 from telethon.tl.types import DocumentAttributeFilename, DocumentAttributeVideo, DocumentAttributeImageSize
@@ -32,6 +32,26 @@ def get_metadata(save_path):
             w=metadata.get('width'),
             h=metadata.get('height')
         ), metadata.get('mime_type')
+
+@bot.on(events.NewMessage(pattern='/random'))
+async def send_pic(event):
+    chat_id = event.message.chat_id
+    label = ['ssis', 'ssni', 'snis', 'soe', 'oned', 'onsd', 'ebod', 'jufe', 'juy', 'jul', 'mide', 'mifd', 'miaa', 'ipx', 'mird', 'dasd', 'pppd', 'dandy', 'dvdms', 'stars', 'sdmu', 'meyd']
+    num = random.choice(label)+'-'+f'{random.randrange(1, 999):03}'
+    infopage = requests.post('https://www.jav321.com/search', data={'sn':num})
+    if infopage.url == 'https://www.jav321.com/search':
+        num = random.choice(label)+'-'+f'{random.randrange(1, 999):03}'
+        infopage = requests.post('https://www.jav321.com/search', data={'sn':num})
+    cid = re.sub('https://www.jav321.com/video/', '', infopage.url)
+    picurl = 'https://pics.dmm.co.jp/digital/video/'+cid+'/'+cid+'pl.jpg'
+    temp_dir = tempfile.TemporaryDirectory()
+    save_path = temp_dir.name+'/'+cid+'pl.jpg'
+    with urllib.request.urlopen(picurl) as response, open(save_path, 'wb') as out_file:
+        shutil.copyfileobj(response, out_file)
+    await bot.send_file(chat_id, save_path, caption=num)
+
+    temp_dir.cleanup()
+
 
 @bot.on(events.NewMessage(pattern=r'/dmmpic\s*.*-\d*'))
 async def send_pic(event):
