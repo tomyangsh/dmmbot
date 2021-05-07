@@ -77,6 +77,9 @@ async def send_vid(event):
     cid = re.sub('https://www.jav321.com/video/', '', infopage.url)
     cidp = cid[0]+'/'+cid[0:3]+'/'+cid
     vidurl = 'https://cc3001.dmm.co.jp/litevideo/freepv/'+cidp+'/'+cid+'_mhb_w.mp4'
+    if requests.get(vidurl).status_code == 404:
+        vidurl = 'https://cc3001.dmm.co.jp/litevideo/freepv/'+cidp+'/'+cid+'_dmb_w.mp4'
+    print(vidurl)
     temp_dir = tempfile.TemporaryDirectory()
     save_path = temp_dir.name+'/'+cid+'.mp4'
     with urllib.request.urlopen(vidurl) as response, open(save_path, 'wb') as out_file:
@@ -102,6 +105,8 @@ async def send_vid(event):
     cid = re.sub('https://www.jav321.com/video/', '', infopage.url)
     cidp = cid[0]+'/'+cid[0:3]+'/'+cid
     vidurl = 'https://cc3001.dmm.co.jp/litevideo/freepv/'+cidp+'/'+cid+'_mhb_w.mp4'
+    if requests.get(vidurl).status_code == 404:
+        vidurl = 'https://cc3001.dmm.co.jp/litevideo/freepv/'+cidp+'/'+cid+'_dmb_w.mp4'
     temp_dir = tempfile.TemporaryDirectory()
     save_path = temp_dir.name+'/'+cid+'.mp4'
     with urllib.request.urlopen(vidurl) as response, open(save_path, 'wb') as out_file:
