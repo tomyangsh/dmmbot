@@ -62,20 +62,10 @@ async def send_vid(event):
     chat_id = event.message.chat_id
     reply_msg = await event.get_reply_message()
     num = re.match(r'.+-\d+', reply_msg.text).group()
-    infopage = requests.get('http://www.javlibrary.com/cn/vl_searchbyid.php?keyword={}'.format(num)).text
-    cid = re.search('pics.dmm.co.jp/mono/movie/adult/(\w+)/', infopage).groups()[0]
-    cidp = cid[0]+'/'+cid[0:3]+'/'+cid
-    vidurl = 'https://cc3001.dmm.co.jp/litevideo/freepv/'+cidp+'/'+cid+'_mhb_w.mp4'
-    if requests.get(vidurl).status_code == 404:
-        vidurl = 'https://cc3001.dmm.co.jp/litevideo/freepv/'+cidp+'/'+cid+'_dmb_w.mp4'
-        if requests.get(vidurl).status_code == 404:
-            cid = cid[:-5]+cid[-3:]
-            cidp = cid[0]+'/'+cid[0:3]+'/'+cid
-            vidurl = 'https://cc3001.dmm.co.jp/litevideo/freepv/'+cidp+'/'+cid+'_mhb_w.mp4'
-            if requests.get(vidurl).status_code == 404:
-                vidurl = 'https://cc3001.dmm.co.jp/litevideo/freepv/'+cidp+'/'+cid+'_dmb_w.mp4'
+    result_page = requests.get('https://www.r18.com/common/search/order=match/searchword='+num+'/', headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:92.0) Gecko/20100101 Firefox/92.0"}).text
+    vidurl = re.findall('https://.*\.mp4', result_page)[-1]
     temp_dir = tempfile.TemporaryDirectory()
-    save_path = temp_dir.name+'/'+cid+'.mp4'
+    save_path = temp_dir.name+'/'+num+'.mp4'
     with urllib.request.urlopen(vidurl) as response, open(save_path, 'wb') as out_file:
         shutil.copyfileobj(response, out_file)
     metadata, mime_type = get_metadata(save_path)
@@ -94,20 +84,10 @@ async def send_vid(event):
 async def send_vid(event):
     chat_id = event.message.chat_id
     num = re.sub(r'/dmmvid\s*', '', event.message.text)
-    infopage = requests.get('http://www.javlibrary.com/cn/vl_searchbyid.php?keyword={}'.format(num)).text
-    cid = re.search('pics.dmm.co.jp/mono/movie/adult/(\w+)/', infopage).groups()[0]
-    cidp = cid[0]+'/'+cid[0:3]+'/'+cid
-    vidurl = 'https://cc3001.dmm.co.jp/litevideo/freepv/'+cidp+'/'+cid+'_mhb_w.mp4'
-    if requests.get(vidurl).status_code == 404:
-        vidurl = 'https://cc3001.dmm.co.jp/litevideo/freepv/'+cidp+'/'+cid+'_dmb_w.mp4'
-        if requests.get(vidurl).status_code == 404:
-            cid = cid[:-5]+cid[-3:]
-            cidp = cid[0]+'/'+cid[0:3]+'/'+cid
-            vidurl = 'https://cc3001.dmm.co.jp/litevideo/freepv/'+cidp+'/'+cid+'_mhb_w.mp4'
-            if requests.get(vidurl).status_code == 404:
-                vidurl = 'https://cc3001.dmm.co.jp/litevideo/freepv/'+cidp+'/'+cid+'_dmb_w.mp4'
+    result_page = requests.get('https://www.r18.com/common/search/order=match/searchword='+num+'/', headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:92.0) Gecko/20100101 Firefox/92.0"}).text     
+    vidurl = re.findall('https://.*\.mp4', result_page)[-1]
     temp_dir = tempfile.TemporaryDirectory()
-    save_path = temp_dir.name+'/'+cid+'.mp4'
+    save_path = temp_dir.name+'/'+num+'.mp4'
     with urllib.request.urlopen(vidurl) as response, open(save_path, 'wb') as out_file:
         shutil.copyfileobj(response, out_file)
     metadata, mime_type = get_metadata(save_path)
