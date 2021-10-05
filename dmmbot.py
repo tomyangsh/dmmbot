@@ -3,105 +3,83 @@
 
 import os, requests, urllib.request, shutil, asyncio, re, random, tempfile
 
-from io import BytesIO
-
-from telethon import TelegramClient, events
-from telethon.tl.types import DocumentAttributeFilename, DocumentAttributeVideo, DocumentAttributeImageSize
-from telethon.utils import get_input_media
-
-from hachoir.metadata import extractMetadata
-from hachoir.parser import createParser
-from hachoir.metadata.video import MP4Metadata
-
-from FastTelethon.FastTelethon import upload_file
+from pyrogram import Client, filters
+from pyrogram.types import Message
 
 token = os.getenv("TOKEN")
 app_id = int(os.getenv("APP_ID"))
 app_hash = os.getenv("APP_HASH")
 
-bot = TelegramClient('bot', app_id, app_hash).start(bot_token=token)
+def download_file(url):
+    local_filename = url.split('/')[-1]
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(local_filename, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192): 
+                f.write(chunk)
+    return local_filename
 
-def get_metadata(save_path):
-    metadata = extractMetadata(createParser(save_path))
-    if isinstance(metadata, MP4Metadata):
-        return dict(
-            duration=metadata.get('duration').seconds,
-            w=metadata.get('width'),
-            h=metadata.get('height')
-        ), metadata.get('mime_type')
-    else:
-        return dict(
-            w=metadata.get('width'),
-            h=metadata.get('height')
-        ), metadata.get('mime_type')
+bot = Client('bot', app_id, app_hash, bot_token=token)
 
-@bot.on(events.NewMessage(pattern='/random'))
-async def send_pic(event):
-    chat_id = event.message.chat_id
+@bot.on_message(filters.command('random'))
+def send_randomposter(client, message):
+    bot.send_chat_action(message.chat.id, "upload_photo")
     label = ['ssis', 'ssni', 'snis', 'soe', 'oned', 'onsd', 'ebod', 'jufe', 'juy', 'jul', 'mide', 'mifd', 'miaa', 'ipx', 'mird', 'dasd', 'pppd', 'dandy', 'dvdms', 'stars', 'sdmu', 'meyd']
     num = random.choice(label)+'-'+f'{random.randrange(1, 999):03}'
     infopage = requests.get('http://www.javlibrary.com/cn/vl_searchbyid.php?keyword={}'.format(num)).text
     cid = re.search('pics.dmm.co.jp/mono/movie/adult/(\w+)/', infopage).groups()[0]
     picurl = 'https://pics.dmm.co.jp/mono/movie/adult/'+cid+'/'+cid+'pl.jpg'
     image = BytesIO(requests.get(picurl).content)
-    await bot.send_file(chat_id, image, caption=num)
+    image.name = 'image.jpg'
+    bot.send_photo(message.chat.id, image, caption=num)
 
 
-@bot.on(events.NewMessage(pattern=r'/dmmpic\s*.*-\d*'))
-async def send_pic(event):
-    chat_id = event.message.chat_id
-    num = re.sub(r'/dmmpic\s*', '', event.message.text)
+@bot.on_message(filters.command('dmmpic'))
+def send_poster(client, message):
+    bot.send_chat_action(message.chat.id, "upload_photo")
+    num = re.sub(r'/dmmpic\s*', '', message.text)
     infopage = requests.get('http://www.javlibrary.com/cn/vl_searchbyid.php?keyword={}'.format(num)).text
     cid = re.search('pics.dmm.co.jp/mono/movie/adult/(\w+)/', infopage).groups()[0]
     picurl = 'https://pics.dmm.co.jp/mono/movie/adult/'+cid+'/'+cid+'pl.jpg'
     image = BytesIO(requests.get(picurl).content)
-    await bot.send_file(chat_id, image)
+    image.name = 'image.jpg'
+    bot.send_photo(message.chat.id, image)
 
-@bot.on(events.NewMessage(pattern=r'V|v'))
-async def send_vid(event):
-    chat_id = event.message.chat_id
-    reply_msg = await event.get_reply_message()
-    num = re.match(r'.+-\d+', reply_msg.text).group()
+@bot.on_message(filters.regex(r'v|V') & filters.reply)
+def send_vid(client, message):
+    bot.send_chat_action(message.chat.id, "upload_video")
+    source_msg = bot.get_messages(message.chat.id, reply_to_message_ids=message.message_id)
+    num = re.match(r'.+-\d+', source_msg.caption).group()
     result_page = requests.get('https://www.r18.com/common/search/order=match/searchword='+num+'/', headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:92.0) Gecko/20100101 Firefox/92.0"}).text
-    vidurl = re.findall('https://.*\.mp4', result_page)[-1]
-    temp_dir = tempfile.TemporaryDirectory()
-    save_path = temp_dir.name+'/'+num+'.mp4'
-    with urllib.request.urlopen(vidurl) as response, open(save_path, 'wb') as out_file:
-        shutil.copyfileobj(response, out_file)
-    metadata, mime_type = get_metadata(save_path)
-    with open(save_path, 'rb') as f:
-        input_file = await upload_file(bot, f)
-    input_media = get_input_media(input_file)
-    input_media.attributes = [
-        DocumentAttributeVideo(round_message=False, supports_streaming=True, **metadata),
-        DocumentAttributeFilename(os.path.basename(save_path)),
-    ]
-    input_media.mime_type = mime_type
-    await bot.send_file(chat_id, input_media)
-    temp_dir.cleanup()
+    try:
+        vidurl = re.findall('https://.*\.mp4', result_page)[-1]
+        hdvidurl = re.sub('dmb', 'mhb', vidurl)
+    except:
+        bot.send_message(message.chat.id, '🈚️')
+        return
+    try:
+        video =  download_file(hdvidurl)
+    except:
+        video = download_file(vidurl)
+    bot.send_video(message.chat.id, video, width=720, height=404)
+    os.unlink(video)
 
-@bot.on(events.NewMessage(pattern=r'/dmmvid\s*.+-\d+'))
-async def send_vid(event):
-    chat_id = event.message.chat_id
-    num = re.sub(r'/dmmvid\s*', '', event.message.text)
+@bot.on_message(filters.command('dmmvid'))
+def send_vid(client, message):
+    bot.send_chat_action(message.chat.id, "upload_video")
+    num = re.sub(r'/dmmvid\s*', '', message.text)
     result_page = requests.get('https://www.r18.com/common/search/order=match/searchword='+num+'/', headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:92.0) Gecko/20100101 Firefox/92.0"}).text     
-    vidurl = re.findall('https://.*\.mp4', result_page)[-1]
-    temp_dir = tempfile.TemporaryDirectory()
-    save_path = temp_dir.name+'/'+num+'.mp4'
-    with urllib.request.urlopen(vidurl) as response, open(save_path, 'wb') as out_file:
-        shutil.copyfileobj(response, out_file)
-    metadata, mime_type = get_metadata(save_path)
-    with open(save_path, 'rb') as f:
-        input_file = await upload_file(bot, f)
-    input_media = get_input_media(input_file)
-    input_media.attributes = [
-        DocumentAttributeVideo(round_message=False, supports_streaming=True, **metadata),
-        DocumentAttributeFilename(os.path.basename(save_path)),
-    ]
-    input_media.mime_type = mime_type
-    await bot.send_file(chat_id, input_media)
-    temp_dir.cleanup()
+    try:
+        vidurl = re.findall('https://.*\.mp4', result_page)[-1]
+        hdvidurl = re.sub('dmb', 'mhb', vidurl)
+    except:
+        bot.send_message(message.chat.id, '🈚️')
+        return
+    try:
+        video = download_file(hdvidurl)
+    except:
+        video = download_file(vidurl)
+    bot.send_video(message.chat.id, video, width=720, height=404)
+    os.unlink(video)
 
-if __name__ == '__main__':
-    bot.start()
-    bot.run_until_disconnected()
+bot.run()
