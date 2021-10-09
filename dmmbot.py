@@ -3,6 +3,8 @@
 
 import os, requests, urllib.request, shutil, asyncio, re, random, tempfile
 
+from io import BytesIO
+
 from pyrogram import Client, filters
 from pyrogram.types import Message
 
@@ -43,7 +45,7 @@ def send_poster(client, message):
     picurl = 'https://pics.dmm.co.jp/mono/movie/adult/'+cid+'/'+cid+'pl.jpg'
     image = BytesIO(requests.get(picurl).content)
     image.name = 'image.jpg'
-    bot.send_photo(message.chat.id, image)
+    bot.send_photo(message.chat.id, image, reply_to_message_id=message.message_id)
 
 @bot.on_message(filters.regex(r'v|V') & filters.reply)
 def send_vid(client, message):
@@ -55,13 +57,15 @@ def send_vid(client, message):
         vidurl = re.findall('https://.*\.mp4', result_page)[-1]
         hdvidurl = re.sub('dmb', 'mhb', vidurl)
     except:
-        bot.send_message(message.chat.id, '🈚️')
+        bot.send_message(message.chat.id, '🈚️', reply_to_message_id=source_msg.message_id)
+        bot.delete_messages(message.chat.id, message.message_id)
         return
     try:
         video =  download_file(hdvidurl)
     except:
         video = download_file(vidurl)
-    bot.send_video(message.chat.id, video, width=720, height=404)
+    bot.send_video(message.chat.id, video, width=720, height=404, reply_to_message_id=source_msg.message_id)
+    bot.delete_messages(message.chat.id, message.message_id)
     os.unlink(video)
 
 @bot.on_message(filters.command('dmmvid'))
@@ -73,13 +77,13 @@ def send_vid(client, message):
         vidurl = re.findall('https://.*\.mp4', result_page)[-1]
         hdvidurl = re.sub('dmb', 'mhb', vidurl)
     except:
-        bot.send_message(message.chat.id, '🈚️')
+        bot.send_message(message.chat.id, '🈚️', reply_to_message_id=message.message_id)
         return
     try:
         video = download_file(hdvidurl)
     except:
         video = download_file(vidurl)
-    bot.send_video(message.chat.id, video, width=720, height=404)
+    bot.send_video(message.chat.id, video, width=720, height=404, reply_to_message_id=message.message_id)
     os.unlink(video)
 
 bot.run()
