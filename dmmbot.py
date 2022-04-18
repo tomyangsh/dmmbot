@@ -1,89 +1,133 @@
 #!/usr/bin/python3
 # coding: utf-8
 
-import os, requests, urllib.request, shutil, asyncio, re, random, tempfile
+import os, requests, json, re, random, ffmpeg
 
 from io import BytesIO
 
 from pyrogram import Client, filters
-from pyrogram.types import Message
+from pyrogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
 token = os.getenv("TOKEN")
 app_id = int(os.getenv("APP_ID"))
 app_hash = os.getenv("APP_HASH")
 
-def download_file(url):
-    local_filename = url.split('/')[-1]
-    with requests.get(url, stream=True) as r:
-        r.raise_for_status()
-        with open(local_filename, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=8192): 
-                f.write(chunk)
-    return local_filename
-
 bot = Client('bot', app_id, app_hash, bot_token=token)
 
+def get_image(url):
+    image = BytesIO(requests.get(url).content) 
+    image.name = 'image.jpg'
+    return image
+
+def get_video(cid):
+    url = "https://cc3001.dmm.co.jp/litevideo/freepv/{}/{}/{}/{}_mhb_w.mp4".format(cid[0], cid[:3], cid, cid)
+    res = requests.get(url)
+    if res.status_code == 404:
+        url = re.sub(r'([a-z])00', r'\1', url)
+        res = requests.get(url)
+    video = BytesIO(res.content)
+    video.name = 'video.mp4'
+    return video
+
+def get_metadata(video_path):
+    width, height, duration = 1920, 1080, 0
+    try:
+        video_streams = ffmpeg.probe(video_path, select_streams="v")["streams"][0]
+        height = video_streams["height"]
+        width = video_streams["width"]
+        duration = int(float(video_streams["duration"]))
+    except Exception as e:
+        print(e)
+    return dict(height=height, width=width, duration=duration)
+
+
+def get_thumbnail(video_path):
+    thumbnail = os.path.dirname(__file__)+'/thumbnail.png'
+    ff =    (
+            ffmpeg
+            .input(video_path, ss='1')
+            .output(thumbnail, vframes=1)
+            .overwrite_output()
+            .run()
+        )
+    return thumbnail
+
+
 @bot.on_message(filters.command('random'))
-def send_randomposter(client, message):
+def send_random(client, message):
     bot.send_chat_action(message.chat.id, "upload_photo")
-    label = ['ssis', 'ssni', 'snis', 'soe', 'oned', 'onsd', 'ebod', 'jufe', 'juy', 'jul', 'mide', 'mifd', 'miaa', 'ipx', 'mird', 'dasd', 'pppd', 'dandy', 'dvdms', 'stars', 'sdmu', 'meyd']
-    num = random.choice(label)+'-'+f'{random.randrange(1, 999):03}'
-    infopage = requests.get('http://www.javlibrary.com/cn/vl_searchbyid.php?keyword={}'.format(num)).text
-    cid = re.search('pics.dmm.co.jp/mono/movie/adult/(\w+)/', infopage).groups()[0]
-    picurl = 'https://pics.dmm.co.jp/mono/movie/adult/'+cid+'/'+cid+'pl.jpg'
-    image = BytesIO(requests.get(picurl).content)
-    image.name = 'image.jpg'
-    bot.send_photo(message.chat.id, image, caption=num)
+    url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&hits=50&sort=date&article=genre&article_id=4025&output=json"
+    res = random.choice(requests.get(url).json()["result"]["items"])
+    image = get_image(res["imageURL"]["large"])
+    cid = res["content_id"]
+    caption = res["title"]
+    if res.get("sampleMovieURL"):
+        if message.chat.type == 'private':
+            bot.send_photo(message.chat.id, image, caption=caption, reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("预览", callback_data=cid)
+            ]]))
+        else:
+            preview_url = res["sampleMovieURL"][list(res["sampleMovieURL"])[-3]]
+            bot.send_photo(message.chat.id, image, caption=caption, reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("预览", url=preview_url)
+                ]]))
+    else:
+        bot.send_photo(message.chat.id, image, caption=caption)
 
 
-@bot.on_message(filters.command('dmmpic'))
-def send_poster(client, message):
+@bot.on_message(filters.command('dmm'))
+def send_info(client, message):
+    if not re.match(r'/dmm\s+.+', message.text):
+            return None
     bot.send_chat_action(message.chat.id, "upload_photo")
-    num = re.sub(r'/dmmpic\s*', '', message.text)
-    infopage = requests.get('http://www.javlibrary.com/cn/vl_searchbyid.php?keyword={}'.format(num)).text
-    cid = re.search('pics.dmm.co.jp/mono/movie/adult/(\w+)/', infopage).groups()[0]
-    picurl = 'https://pics.dmm.co.jp/mono/movie/adult/'+cid+'/'+cid+'pl.jpg'
-    image = BytesIO(requests.get(picurl).content)
-    image.name = 'image.jpg'
-    bot.send_photo(message.chat.id, image, reply_to_message_id=message.message_id)
-
-@bot.on_message(filters.regex(r'v|V') & filters.reply)
-def send_vid(client, message):
-    bot.send_chat_action(message.chat.id, "upload_video")
-    source_msg = bot.get_messages(message.chat.id, reply_to_message_ids=message.message_id)
-    num = re.match(r'.+-\d+', source_msg.caption).group()
-    result_page = requests.get('https://www.r18.com/common/search/order=match/searchword='+num+'/', headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:92.0) Gecko/20100101 Firefox/92.0"}).text
-    try:
-        vidurl = re.findall('https://.*\.mp4', result_page)[-1]
-        hdvidurl = re.sub('dmb', 'mhb', vidurl)
-    except:
-        bot.send_message(message.chat.id, '🈚️', reply_to_message_id=source_msg.message_id)
-        bot.delete_messages(message.chat.id, message.message_id)
-        return
-    try:
-        video =  download_file(hdvidurl)
-    except:
-        video = download_file(vidurl)
-    bot.send_video(message.chat.id, video, width=720, height=404, reply_to_message_id=source_msg.message_id)
-    bot.delete_messages(message.chat.id, message.message_id)
-    os.unlink(video)
-
-@bot.on_message(filters.command('dmmvid'))
-def send_vid(client, message):
-    bot.send_chat_action(message.chat.id, "upload_video")
-    num = re.sub(r'/dmmvid\s*', '', message.text)
-    result_page = requests.get('https://www.r18.com/common/search/order=match/searchword='+num+'/', headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:92.0) Gecko/20100101 Firefox/92.0"}).text     
-    try:
-        vidurl = re.findall('https://.*\.mp4', result_page)[-1]
-        hdvidurl = re.sub('dmb', 'mhb', vidurl)
-    except:
+    if re.match(r'/dmm\s+\w+-\d+', message.text):
+        keyword = re.sub(r'/dmm\s+(\w+)-(\d+)', r'\g<1>00\2', message.text)
+    else:
+        keyword = re.sub(r'/dmm\s+(\w+)', r'\1', message.text)
+    url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&keyword={}&sort=date&output=json".format(keyword)
+    res = requests.get(url).json()["result"]["items"]
+    if not res:
         bot.send_message(message.chat.id, '🈚️', reply_to_message_id=message.message_id)
         return
-    try:
-        video = download_file(hdvidurl)
-    except:
-        video = download_file(vidurl)
-    bot.send_video(message.chat.id, video, width=720, height=404, reply_to_message_id=message.message_id)
-    os.unlink(video)
+    res = res[0]
+    image = get_image(res["imageURL"]["large"])
+    caption = res["title"]
+    if res.get("sampleMovieURL"):
+        preview_url = res["sampleMovieURL"][list(res["sampleMovieURL"])[-3]]
+        bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id, reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("预览", url=preview_url)
+            ]]))
+    else:
+        bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id)
+
+@bot.on_message(filters.chat(384635476))
+def private(client, message):
+    bot.send_chat_action(message.chat.id, "upload_photo")
+    if re.match(r'\w+-\d+', message.text):
+        keyword = re.sub(r'(\w+)-(\d+)', r'\g<1>00\2', message.text)
+    else:
+        keyword = message.text
+    url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&keyword={}&sort=date&output=json".format(keyword)
+    res = requests.get(url).json()["result"]["items"]
+    if not res:
+        bot.send_message(message.chat.id, '🈚️', reply_to_message_id=message.message_id)
+        return
+    res = res[0]
+    image = get_image(res["imageURL"]["large"])
+    cid = res["content_id"]
+    caption = res["title"]
+    if res.get("sampleMovieURL"):
+        bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id, reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("预览", callback_data=cid)
+            ]]))
+    else:
+        bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id)
+
+@bot.on_callback_query()
+def send_video(client, callback_query):
+    cid = callback_query.data
+    video = get_video(cid)
+    bot.send_chat_action(callback_query.message.chat.id, "upload_video")
+    bot.send_video(callback_query.message.chat.id, video, width=720, height=404, reply_to_message_id=callback_query.message.message_id)
 
 bot.run()
