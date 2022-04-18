@@ -64,15 +64,19 @@ def send_random(client, message):
     if res.get("sampleMovieURL"):
         if message.chat.type == 'private':
             bot.send_photo(message.chat.id, image, caption=caption, reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("预览", callback_data=cid)
+            InlineKeyboardButton("预览", callback_data=cid),
+            InlineKeyboardButton("Javlibrary", url='https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+cid)
             ]]))
         else:
             preview_url = res["sampleMovieURL"][list(res["sampleMovieURL"])[-3]]
             bot.send_photo(message.chat.id, image, caption=caption, reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("预览", url=preview_url)
+                InlineKeyboardButton("预览", url=preview_url),
+                InlineKeyboardButton("Javlibrary", url='https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+cid)
                 ]]))
     else:
-        bot.send_photo(message.chat.id, image, caption=caption)
+        bot.send_photo(message.chat.id, image, caption=caption, reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("Javlibrary", url='https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+cid)
+            ]]))
 
 
 @bot.on_message(filters.command('dmm'))
@@ -90,21 +94,26 @@ def send_info(client, message):
         bot.send_message(message.chat.id, '🈚️', reply_to_message_id=message.message_id)
         return
     res = res[0]
+    cid = res["content_id"]
     image = get_image(res["imageURL"]["large"])
     caption = res["title"]
     if res.get("sampleMovieURL"):
         preview_url = res["sampleMovieURL"][list(res["sampleMovieURL"])[-3]]
         bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id, reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("预览", url=preview_url)
+            InlineKeyboardButton("预览", url=preview_url),
+            InlineKeyboardButton("Javlibrary", url='https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+cid)
             ]]))
     else:
-        bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id)
+        bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id, reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("Javlibrary", url='https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+cid)
+            ]]))
 
 @bot.on_message(filters.chat(384635476))
 def private(client, message):
     bot.send_chat_action(message.chat.id, "upload_photo")
-    if re.match(r'\w+-\d+', message.text):
-        keyword = re.sub(r'(\w+)-(\d+)', r'\g<1>00\2', message.text)
+    input = message.text or message.caption
+    if re.match(r'\w+-\d+', input):
+        keyword = re.sub('-', '00', re.match(r'\w+-\d+', input).group())
     else:
         keyword = message.text
     url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&keyword={}&sort=date&output=json".format(keyword)
@@ -118,10 +127,13 @@ def private(client, message):
     caption = res["title"]
     if res.get("sampleMovieURL"):
         bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id, reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("预览", callback_data=cid)
+            InlineKeyboardButton("预览", callback_data=cid),
+            InlineKeyboardButton("Javlibrary", url='https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+cid)
             ]]))
     else:
-        bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id)
+        bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id, reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("Javlibrary", url='https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+cid)
+            ]]))
 
 @bot.on_callback_query()
 def send_video(client, callback_query):
