@@ -34,7 +34,7 @@ def send_random(client, message):
     image = get_image(res["imageURL"]["large"])
     cid = res["content_id"]
     caption = res["title"]
-    javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.sub(r'\w_\d\d\d', '', cid)
+    javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.search(r'[a-zA-Z]+\d+', cid).group()
     if res.get("sampleMovieURL"):
         if message.chat.type == 'private':
             bot.send_photo(message.chat.id, image, caption=caption, reply_markup=InlineKeyboardMarkup([[
@@ -71,7 +71,7 @@ def send_info(client, message):
     cid = res["content_id"]
     image = get_image(res["imageURL"]["large"])
     caption = res["title"]
-    javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.sub(r'\w_\d\d\d', '', cid)
+    javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.search(r'[a-zA-Z]+\d+', cid).group()
     if res.get("sampleMovieURL"):
         preview_url = 'https://'+re.sub(r'\\', '', re.search(r'cc3001.+?.mp4', requests.get("https://www.dmm.co.jp/service/digitalapi/-/html5_player/=/cid={}/mtype=AhRVShI_/service=litevideo/mode=part/width=720/height=480/".format(cid)).text).group())
         bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id, reply_markup=InlineKeyboardMarkup([[
@@ -102,7 +102,7 @@ def private(client, message):
     image = get_image(res["imageURL"]["large"])
     cid = res["content_id"]
     caption = res["title"]
-    javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.sub(r'\w_\d\d\d', '', cid)
+    javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.search(r'[a-zA-Z]+\d+', cid).group()
     if res.get("sampleMovieURL"):
         bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id, reply_markup=InlineKeyboardMarkup([[
             InlineKeyboardButton("预览", callback_data=cid),
