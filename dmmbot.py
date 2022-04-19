@@ -25,33 +25,11 @@ def get_video(cid):
     if res.status_code == 404:
         url = re.sub(r'([a-z])00', r'\1', url)
         res = requests.get(url)
+    if res.status_code == 404:
+        return None
     video = BytesIO(res.content)
     video.name = 'video.mp4'
     return video
-
-def get_metadata(video_path):
-    width, height, duration = 1920, 1080, 0
-    try:
-        video_streams = ffmpeg.probe(video_path, select_streams="v")["streams"][0]
-        height = video_streams["height"]
-        width = video_streams["width"]
-        duration = int(float(video_streams["duration"]))
-    except Exception as e:
-        print(e)
-    return dict(height=height, width=width, duration=duration)
-
-
-def get_thumbnail(video_path):
-    thumbnail = os.path.dirname(__file__)+'/thumbnail.png'
-    ff =    (
-            ffmpeg
-            .input(video_path, ss='1')
-            .output(thumbnail, vframes=1)
-            .overwrite_output()
-            .run()
-        )
-    return thumbnail
-
 
 @bot.on_message(filters.command('random'))
 def send_random(client, message):
@@ -139,6 +117,9 @@ def private(client, message):
 def send_video(client, callback_query):
     cid = callback_query.data
     video = get_video(cid)
+    if not video:
+        bot.send_message(callback_query.message.chat.id, "https://www.dmm.co.jp/litevideo/-/part/=/cid="+cid+"/size=720_480/")
+        return
     bot.send_chat_action(callback_query.message.chat.id, "upload_video")
     bot.send_video(callback_query.message.chat.id, video, width=720, height=404, reply_to_message_id=callback_query.message.message_id)
 
