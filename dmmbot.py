@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # coding: utf-8
 
-import os, requests, json, re, random, ffmpeg
+import os, requests, json, re, random
 
 from io import BytesIO
 
@@ -20,13 +20,8 @@ def get_image(url):
     return image
 
 def get_video(cid):
-    url = "https://cc3001.dmm.co.jp/litevideo/freepv/{}/{}/{}/{}_mhb_w.mp4".format(cid[0], cid[:3], cid, cid)
+    url = 'https://'+re.sub(r'\\', '', re.search(r'cc3001.+?.mp4', requests.get("https://www.dmm.co.jp/service/digitalapi/-/html5_player/=/cid={}/mtype=AhRVShI_/service=litevideo/mode=part/width=720/height=480/".format(cid)).text).group())
     res = requests.get(url)
-    if res.status_code == 404:
-        url = re.sub(r'([a-z])00', r'\1', url)
-        res = requests.get(url)
-    if res.status_code == 404:
-        return None
     video = BytesIO(res.content)
     video.name = 'video.mp4'
     return video
@@ -39,17 +34,18 @@ def send_random(client, message):
     image = get_image(res["imageURL"]["large"])
     cid = res["content_id"]
     caption = res["title"]
+    javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.sub(r'\w_\d\d\d', '', cid)
     if res.get("sampleMovieURL"):
         if message.chat.type == 'private':
             bot.send_photo(message.chat.id, image, caption=caption, reply_markup=InlineKeyboardMarkup([[
             InlineKeyboardButton("预览", callback_data=cid),
-            InlineKeyboardButton("Javlibrary", url='https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+cid)
+            InlineKeyboardButton("Javlibrary", url=javlib_url)
             ]]))
         else:
-            preview_url = res["sampleMovieURL"][list(res["sampleMovieURL"])[-3]]
+            preview_url = 'https://'+re.sub(r'\\', '', re.search(r'cc3001.+?.mp4', requests.get("https://www.dmm.co.jp/service/digitalapi/-/html5_player/=/cid={}/mtype=AhRVShI_/service=litevideo/mode=part/width=720/height=480/".format(cid)).text).group())
             bot.send_photo(message.chat.id, image, caption=caption, reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton("预览", url=preview_url),
-                InlineKeyboardButton("Javlibrary", url='https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+cid)
+                InlineKeyboardButton("Javlibrary", url=javlib_url)
                 ]]))
     else:
         bot.send_photo(message.chat.id, image, caption=caption, reply_markup=InlineKeyboardMarkup([[
@@ -75,19 +71,22 @@ def send_info(client, message):
     cid = res["content_id"]
     image = get_image(res["imageURL"]["large"])
     caption = res["title"]
+    javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.sub(r'\w_\d\d\d', '', cid)
     if res.get("sampleMovieURL"):
-        preview_url = res["sampleMovieURL"][list(res["sampleMovieURL"])[-3]]
+        preview_url = 'https://'+re.sub(r'\\', '', re.search(r'cc3001.+?.mp4', requests.get("https://www.dmm.co.jp/service/digitalapi/-/html5_player/=/cid={}/mtype=AhRVShI_/service=litevideo/mode=part/width=720/height=480/".format(cid)).text).group())
         bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id, reply_markup=InlineKeyboardMarkup([[
             InlineKeyboardButton("预览", url=preview_url),
-            InlineKeyboardButton("Javlibrary", url='https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+cid)
+            InlineKeyboardButton("Javlibrary", url=javlib_url)
             ]]))
     else:
         bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id, reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("Javlibrary", url='https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+cid)
+            InlineKeyboardButton("Javlibrary", url=javlib_url)
             ]]))
 
-@bot.on_message(filters.chat(384635476))
+@bot.on_message()
 def private(client, message):
+    if message.chat.type != "private":
+        return
     bot.send_chat_action(message.chat.id, "upload_photo")
     input = message.text or message.caption
     if re.match(r'\w+-\d+', input):
@@ -103,24 +102,23 @@ def private(client, message):
     image = get_image(res["imageURL"]["large"])
     cid = res["content_id"]
     caption = res["title"]
+    javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.sub(r'\w_\d\d\d', '', cid)
     if res.get("sampleMovieURL"):
         bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id, reply_markup=InlineKeyboardMarkup([[
             InlineKeyboardButton("预览", callback_data=cid),
-            InlineKeyboardButton("Javlibrary", url='https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+cid)
+            InlineKeyboardButton("Javlibrary", url=javlib_url)
             ]]))
     else:
         bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id, reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("Javlibrary", url='https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+cid)
+            InlineKeyboardButton("Javlibrary", url=javlib_url)
             ]]))
 
 @bot.on_callback_query()
 def send_video(client, callback_query):
     cid = callback_query.data
     video = get_video(cid)
-    if not video:
-        bot.send_message(callback_query.message.chat.id, "https://www.dmm.co.jp/litevideo/-/part/=/cid="+cid+"/size=720_480/")
-        return
     bot.send_chat_action(callback_query.message.chat.id, "upload_video")
     bot.send_video(callback_query.message.chat.id, video, width=720, height=404, reply_to_message_id=callback_query.message.message_id)
+    bot.answer_callback_query(callback_query.id)
 
 bot.run()
