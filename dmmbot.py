@@ -26,6 +26,11 @@ def get_video(cid):
     video.name = 'video.mp4'
     return video
 
+@bot.on_message(filters.command('start'))
+def welcome(client, message):
+    text = '请直接发送番号、番号前缀、女优名（日文/英文）或任何关键字进行搜索'
+    bot.send_message(message.chat.id, text)
+
 @bot.on_message(filters.command('random'))
 def send_random(client, message):
     bot.send_chat_action(message.chat.id, "upload_photo")
