@@ -98,20 +98,42 @@ def private(client, message):
     if not res:
         bot.send_message(message.chat.id, '🈚️', reply_to_message_id=message.message_id)
         return
-    res = res[0]
+    info = res[0]
+    image = get_image(info["imageURL"]["large"])
+    cid = info["content_id"]
+    caption = info["title"]
+    javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.search(r'[a-zA-Z]+\d+', cid).group()
+    extra = {}
+    for i in res[1:5]:
+        cid = i["content_id"]
+        num = re.sub(r'([a-zA-Z]+)00', r'\1-', re.search(r'[a-zA-Z]+\d+', cid).group())
+        extra[cid] = num
+    button = []
+    if info.get("sampleMovieURL"):
+        button.append(InlineKeyboardButton("预览", callback_data=cid))
+    button.append(InlineKeyboardButton("Javlib", url=javlib_url))
+    buttonlist = [button]
+    if extra:
+        for i in extra:
+            buttonlist.append([InlineKeyboardButton(extra[i], callback_data='cid:'+i)])
+    bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id, reply_markup=InlineKeyboardMarkup(buttonlist))
+
+@bot.on_callback_query(filters.regex(r'^cid'))
+def extra(client, callback_query):
+    bot.send_chat_action(callback_query.message.chat.id, "upload_photo")
+    cid = re.search(r'\w+\d+', callback_query.data).group()
+    url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&cid={}&output=json".format(cid)
+    res = requests.get(url).json()["result"]["items"][0]
     image = get_image(res["imageURL"]["large"])
     cid = res["content_id"]
     caption = res["title"]
     javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.search(r'[a-zA-Z]+\d+', cid).group()
+    button = []
     if res.get("sampleMovieURL"):
-        bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id, reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("预览", callback_data=cid),
-            InlineKeyboardButton("Javlibrary", url=javlib_url)
-            ]]))
-    else:
-        bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.message_id, reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("Javlibrary", url=javlib_url)
-            ]]))
+        button.append(InlineKeyboardButton("预览", callback_data=cid))
+    button.append(InlineKeyboardButton("Javlib", url=javlib_url))
+    bot.send_photo(callback_query.message.chat.id, image, caption=caption, reply_markup=InlineKeyboardMarkup([button]))
+    bot.answer_callback_query(callback_query.id)
 
 @bot.on_callback_query()
 def send_video(client, callback_query):
