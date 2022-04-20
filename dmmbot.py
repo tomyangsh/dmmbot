@@ -106,9 +106,9 @@ def private(client, message):
     javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.search(r'[a-zA-Z]+\d+', cid).group()
     extra = {}
     for i in res[1:5]:
-        cid = i["content_id"]
-        num = re.sub(r'([a-zA-Z]+)00', r'\1-', re.search(r'[a-zA-Z]+\d+', cid).group())
-        extra[cid] = num
+        c = i["content_id"]
+        num = re.sub(r'([a-zA-Z]+)00', r'\1-', re.search(r'[a-zA-Z]+\d+', c).group())
+        extra[c] = num
     button = []
     if info.get("sampleMovieURL"):
         button.append(InlineKeyboardButton("预览", callback_data=cid))
