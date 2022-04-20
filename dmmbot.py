@@ -1,18 +1,14 @@
 #!/usr/bin/python3
 # coding: utf-8
 
-import os, requests, json, re, random
+import requests, re, random
 
 from io import BytesIO
 
 from pyrogram import Client, filters
-from pyrogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-token = os.getenv("TOKEN")
-app_id = int(os.getenv("APP_ID"))
-app_hash = os.getenv("APP_HASH")
-
-bot = Client('bot', app_id, app_hash, bot_token=token)
+bot = Client('bot')
 
 def get_image(url):
     image = BytesIO(requests.get(url).content) 
@@ -149,6 +145,6 @@ def send_video(client, callback_query):
     bot.send_video(callback_query.message.chat.id, video, width=720, height=404, reply_to_message_id=callback_query.message.message_id)
     bot.delete_messages(callback_query.message.chat.id, sending.message_id)
     bot.answer_callback_query(callback_query.id)
-    return
+    del video
 
 bot.run()
