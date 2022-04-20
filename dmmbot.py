@@ -115,10 +115,13 @@ def private(client, message):
 
 @bot.on_callback_query()
 def send_video(client, callback_query):
+    sending = bot.send_message(callback_query.message.chat.id, "发送中。。。")
     cid = callback_query.data
     video = get_video(cid)
     bot.send_chat_action(callback_query.message.chat.id, "upload_video")
     bot.send_video(callback_query.message.chat.id, video, width=720, height=404, reply_to_message_id=callback_query.message.message_id)
+    bot.delete_messages(callback_query.message.chat.id, sending.message_id)
     bot.answer_callback_query(callback_query.id)
+    return
 
 bot.run()
