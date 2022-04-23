@@ -6,7 +6,7 @@ import requests, re, random
 from io import BytesIO
 
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InlineQueryResultArticle, InputTextMessageContent
 
 bot = Client('bot')
 
@@ -146,5 +146,35 @@ def send_video(client, callback_query):
     bot.delete_messages(callback_query.message.chat.id, sending.message_id)
     bot.answer_callback_query(callback_query.id)
     del video
+
+@bot.on_inline_query()
+def answer(client, inline_query):
+    if not inline_query.query:
+        return
+    keyword = inline_query.query
+    url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&keyword={}&sort=date&output=json".format(keyword)
+    res = requests.get(url).json()["result"]["items"]
+    results=[]
+    for i in res[:5]:
+        img = i["imageURL"]["large"]
+        title = i["title"]
+        url = i["URL"]
+        cid = i["content_id"]
+        genre = [g["name"] for g in i["iteminfo"]["genre"]]
+        genres = ' '.join(genre)
+        javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.search(r'[a-zA-Z]+\d+', cid).group()
+        if i.get("sampleMovieURL"):
+            preview_url = 'https://'+re.sub(r'\\', '', re.search(r'cc3001.+?.mp4', requests.get("https://www.dmm.co.jp/service/digitalapi/-/html5_player/=/cid={}/mtype=AhRVShI_/service=litevideo/mode=part/width=720/height=480/".format(cid)).text).group())
+            reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("预览", url=preview_url),
+            InlineKeyboardButton("Javlibrary", url=javlib_url)
+            ]])
+        else:
+            reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("Javlibrary", url=javlib_url)
+            ]])
+        results.append(InlineQueryResultArticle(title=title, description=genres, input_message_content=InputTextMessageContent(title+'\n'+url), thumb_url=img, reply_markup=reply_markup))
+    inline_query.answer(results=results)
+
 
 bot.run()
