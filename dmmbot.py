@@ -22,10 +22,20 @@ def get_video(cid):
     video.name = 'video.mp4'
     return video
 
-@bot.on_message(filters.command('start'))
+@bot.on_message(filters.regex("^/start$"))
 def welcome(client, message):
     text = '请直接发送番号、番号前缀、女优名（日文/英文）或任何关键字进行搜索'
     bot.send_message(message.chat.id, text)
+
+@bot.on_message(filters.regex("^/start\s.+"))
+def answer_parameter(client, message):
+    sending = bot.send_message(message.chat.id, "发送中。。。")
+    cid = re.match(r'/start\s(.+)', message.text).group(1)
+    video = get_video(cid)
+    bot.send_chat_action(message.chat.id, "upload_video")
+    bot.send_video(message.chat.id, video, width=720, height=404)
+    bot.delete_messages(message.chat.id, sending.message_id)
+    del video
 
 @bot.on_message(filters.command('random'))
 def send_random(client, message):
@@ -159,7 +169,7 @@ def answer(client, inline_query):
         url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&keyword={}&sort=date&output=json".format(keyword)
     res = requests.get(url).json()["result"]["items"]
     results=[]
-    for i in res[:5]:
+    for i in res[:10]:
         img = i["imageURL"]["large"]
         title = i["title"]
         url = i["URL"]
@@ -168,7 +178,7 @@ def answer(client, inline_query):
         genres = ' '.join(genre)
         javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.search(r'[a-zA-Z]+\d+', cid).group()
         if i.get("sampleMovieURL"):
-            preview_url = 'https://'+re.sub(r'\\', '', re.search(r'cc3001.+?.mp4', requests.get("https://www.dmm.co.jp/service/digitalapi/-/html5_player/=/cid={}/mtype=AhRVShI_/service=litevideo/mode=part/width=720/height=480/".format(cid)).text).group())
+            preview_url = 'https://t.me/dmmpreview_bot?start='+cid
             reply_markup=InlineKeyboardMarkup([[
             InlineKeyboardButton("预览", url=preview_url),
             InlineKeyboardButton("Javlibrary", url=javlib_url)
