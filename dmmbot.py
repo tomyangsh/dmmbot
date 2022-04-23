@@ -90,8 +90,8 @@ def private(client, message):
         return
     bot.send_chat_action(message.chat.id, "upload_photo")
     input = message.text or message.caption
-    if re.match(r'\w+-\d+', input):
-        keyword = re.sub('-', '00', re.match(r'\w+-\d+', input).group())
+    if re.search(r'\w+-\d+', input):
+        keyword = re.sub('-', '00', re.search(r'\w+-\d+', input).group())
     else:
         keyword = message.text
     url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&keyword={}&sort=date&output=json".format(keyword)
@@ -151,7 +151,10 @@ def send_video(client, callback_query):
 def answer(client, inline_query):
     if not inline_query.query:
         return
-    keyword = inline_query.query
+    if re.search(r'\w+-\d+', inline_query.query):
+        keyword = re.sub('-', '00', re.search(r'\w+-\d+', inline_query.query).group())
+    else:
+        keyword = inline_query.query
     url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&keyword={}&sort=date&output=json".format(keyword)
     res = requests.get(url).json()["result"]["items"]
     results=[]
