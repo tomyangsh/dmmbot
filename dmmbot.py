@@ -150,12 +150,13 @@ def send_video(client, callback_query):
 @bot.on_inline_query()
 def answer(client, inline_query):
     if not inline_query.query:
-        return
-    if re.search(r'\w+-\d+', inline_query.query):
-        keyword = re.sub('-', '00', re.search(r'\w+-\d+', inline_query.query).group())
+        url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&sort=date&output=json"
     else:
-        keyword = inline_query.query
-    url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&keyword={}&sort=date&output=json".format(keyword)
+        if re.search(r'\w+-\d+', inline_query.query):
+            keyword = re.sub('-', '00', re.search(r'\w+-\d+', inline_query.query).group())
+        else:
+            keyword = inline_query.query
+        url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&keyword={}&sort=date&output=json".format(keyword)
     res = requests.get(url).json()["result"]["items"]
     results=[]
     for i in res[:5]:
