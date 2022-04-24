@@ -47,7 +47,7 @@ async def send_random(client, message):
     caption = res["title"]
     javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.search(r'[a-zA-Z]+\d+', cid).group()
     if res.get("sampleMovieURL"):
-        if message.chat.type.PRIVATE:
+        if message.chat.type == enums.ChatType.PRIVATE:
             await bot.send_photo(message.chat.id, image, caption=caption, reply_markup=InlineKeyboardMarkup([[
             InlineKeyboardButton("预览", callback_data=cid),
             InlineKeyboardButton("Javlibrary", url=javlib_url)
@@ -94,10 +94,8 @@ async def send_info(client, message):
             InlineKeyboardButton("Javlibrary", url=javlib_url)
             ]]))
 
-@bot.on_message()
+@bot.on_message(filters.private)
 async def private(client, message):
-    if not message.chat.type.PRIVATE:
-        return
     await bot.send_chat_action(message.chat.id, enums.ChatAction.UPLOAD_PHOTO)
     input = message.text or message.caption
     if re.search(r'\w+-\d+', input):
