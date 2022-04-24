@@ -102,6 +102,8 @@ def private(client, message):
     input = message.text or message.caption
     if re.search(r'\w+-\d+', input):
         keyword = re.sub('-', '00', re.search(r'\w+-\d+', input).group())
+    elif re.search(r'cid=.+/', input):
+        keyword = re.search(r'cid=(.+)/', input).group(1)
     else:
         keyword = message.text
     url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&keyword={}&sort=date&output=json".format(keyword)
@@ -169,7 +171,7 @@ def answer(client, inline_query):
         url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&keyword={}&sort=date&output=json".format(keyword)
     res = requests.get(url).json()["result"]["items"]
     results=[]
-    for i in res[:10]:
+    for i in res:
         img = i["imageURL"]["large"]
         title = i["title"]
         url = i["URL"]
