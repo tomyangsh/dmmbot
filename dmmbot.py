@@ -40,11 +40,13 @@ async def answer_parameter(client, message):
 @bot.on_message(filters.command('random'))
 async def send_random(client, message):
     await bot.send_chat_action(message.chat.id, enums.ChatAction.UPLOAD_PHOTO)
-    url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&hits=50&sort=date&article=genre&article_id=4025&output=json"
+    offset = str(random.randint(1, 50000))
+    url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&hits=50&offset={}&sort=date&article=genre&article_id=4025&output=json".format(offset)
     res = random.choice(requests.get(url).json()["result"]["items"])
     image = get_image(res["imageURL"]["large"])
     cid = res["content_id"]
-    caption = res["title"]
+    num = re.sub(r'([a-zA-Z]+)00', r'\1-', re.search(r'[a-zA-Z]+\d+', cid).group())
+    caption = num.upper()+' '+res["title"]
     javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.search(r'[a-zA-Z]+\d+', cid).group()
     if res.get("sampleMovieURL"):
         if message.chat.type == enums.ChatType.PRIVATE:
@@ -61,37 +63,6 @@ async def send_random(client, message):
     else:
         await bot.send_photo(message.chat.id, image, caption=caption, reply_markup=InlineKeyboardMarkup([[
             InlineKeyboardButton("Javlibrary", url='https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+cid)
-            ]]))
-
-
-@bot.on_message(filters.command('dmm'))
-async def send_info(client, message):
-    if not re.match(r'/dmm\s+.+', message.text):
-            return None
-    await bot.send_chat_action(message.chat.id, enums.ChatAction.UPLOAD_PHOTO)
-    if re.match(r'/dmm\s+\w+-\d+', message.text):
-        keyword = re.sub(r'/dmm\s+(\w+)-(\d+)', r'\g<1>00\2', message.text)
-    else:
-        keyword = re.sub(r'/dmm\s+(\w+)', r'\1', message.text)
-    url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&keyword={}&sort=date&output=json".format(keyword)
-    res = requests.get(url).json()["result"]["items"]
-    if not res:
-        await bot.send_message(message.chat.id, '🈚️', reply_to_message_id=message.id)
-        return
-    res = res[0]
-    cid = res["content_id"]
-    image = get_image(res["imageURL"]["large"])
-    caption = res["title"]
-    javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.search(r'[a-zA-Z]+\d+', cid).group()
-    if res.get("sampleMovieURL"):
-        preview_url = 'https://'+re.sub(r'\\', '', re.search(r'cc3001.+?.mp4', requests.get("https://www.dmm.co.jp/service/digitalapi/-/html5_player/=/cid={}/mtype=AhRVShI_/service=litevideo/mode=part/width=720/height=480/".format(cid)).text).group())
-        await bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.id, reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("预览", url=preview_url),
-            InlineKeyboardButton("Javlibrary", url=javlib_url)
-            ]]))
-    else:
-        await bot.send_photo(message.chat.id, image, caption=caption, reply_to_message_id=message.id, reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("Javlibrary", url=javlib_url)
             ]]))
 
 @bot.on_message(filters.private)
@@ -112,13 +83,14 @@ async def private(client, message):
     info = res[0]
     image = get_image(info["imageURL"]["large"])
     cid = info["content_id"]
-    caption = info["title"]
+    num = re.sub(r'([a-zA-Z]+)00', r'\1-', re.search(r'[a-zA-Z]+\d+', cid).group())
+    caption = num.upper()+' '+info["title"]
     javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.search(r'[a-zA-Z]+\d+', cid).group()
     extra = {}
     for i in res[1:5]:
         c = i["content_id"]
         num = re.sub(r'([a-zA-Z]+)00', r'\1-', re.search(r'[a-zA-Z]+\d+', c).group())
-        extra[c] = num
+        extra[c] = num.upper()
     button = []
     if info.get("sampleMovieURL"):
         button.append(InlineKeyboardButton("预览", callback_data=cid))
@@ -137,7 +109,8 @@ async def extra(client, callback_query):
     res = requests.get(url).json()["result"]["items"][0]
     image = get_image(res["imageURL"]["large"])
     cid = res["content_id"]
-    caption = res["title"]
+    num = re.sub(r'([a-zA-Z]+)00', r'\1-', re.search(r'[a-zA-Z]+\d+', cid).group())
+    caption = num.upper()+' '+res["title"]
     javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.search(r'[a-zA-Z]+\d+', cid).group()
     button = []
     if res.get("sampleMovieURL"):
@@ -160,7 +133,8 @@ async def send_video(client, callback_query):
 @bot.on_inline_query()
 async def answer(client, inline_query):
     if not inline_query.query:
-        url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&sort=date&output=json"
+        offset = str(random.randint(1, 50000))
+        url = "https://api.dmm.com/affiliate/v3/ItemList?api_id=ezuc1BvgM0f74KV4ZMmS&affiliate_id=sakuradite-999&site=FANZA&service=digital&floor=videoa&sort=date&offset={}&output=json".format(offset)
     else:
         if re.search(r'\w+-\d+', inline_query.query):
             keyword = re.sub('-', '00', re.search(r'\w+-\d+', inline_query.query).group())
@@ -171,9 +145,10 @@ async def answer(client, inline_query):
     results=[]
     for i in res:
         img = i["imageURL"]["large"]
-        title = i["title"]
         url = i["URL"]
         cid = i["content_id"]
+        num = re.sub(r'([a-zA-Z]+)00', r'\1-', re.search(r'[a-zA-Z]+\d+', cid).group())
+        title = num.upper()+' '+i["title"]
         genre = [g["name"] for g in i["iteminfo"]["genre"]]
         genres = ' '.join(genre)
         javlib_url = 'https://www.javlibrary.com/cn/vl_searchbyid.php?keyword='+re.search(r'[a-zA-Z]+\d+', cid).group()
@@ -188,7 +163,7 @@ async def answer(client, inline_query):
             InlineKeyboardButton("Javlibrary", url=javlib_url)
             ]])
         results.append(InlineQueryResultArticle(title=title, description=genres, input_message_content=InputTextMessageContent(title+'\n'+url), thumb_url=img, reply_markup=reply_markup))
-    await inline_query.answer(results=results)
+    await inline_query.answer(results=results, cache_time=10)
 
 
 bot.run()
