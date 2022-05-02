@@ -22,9 +22,12 @@ def get_video(cid):
     video.name = 'video.mp4'
     return video
 
-@bot.on_message(filters.regex("^/start$"))
+@bot.on_message(filters.regex("^/start$|^/start@"))
 async def welcome(client, message):
-    text = '请直接发送番号、番号前缀、女优名（日文/英文）或任何关键字进行搜索'
+    if message.chat.type == "private":
+        text = '请直接发送番号、番号前缀、女优名（日文/英文）或任何关键字进行搜索'
+    else:
+        text = '请输入 `@dmmpreview_bot 关键字` 进行inline mode搜索'
     await bot.send_message(message.chat.id, text)
 
 @bot.on_message(filters.regex("^/start\s.+"))
